@@ -18,8 +18,16 @@ class Config(BaseSettings):
     ENVIRONMENT: str = "development"
     AWS_BUCKET_NAME: str
     AWS_DEFAULT_FOLDER: str
+    SECRET_KEY: str
+    ALGORITHM: str = "HS256"
+    S3_RAW_ROOT_FOLDER: str
+    S3_PROCESSED_ROOT_FOLDER: str
+    LLAMA_CLOUD_API_KEY: str
+    GLINER2_MODEL: str
+    GLINER2_MODEL_THRESHOLD: float
 
-@lru_cache()
+
+# @lru_cache()
 def get_config():
     try:
         settings = Config()

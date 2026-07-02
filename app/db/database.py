@@ -42,13 +42,31 @@ class Database:
             results = [{key: _serialize(value) for key, value in row.items()} for row in rows]
             return results
     
-    async def execute_async_query(self, query:str,params:dict = None):
+    async def execute_async_query(self, query: str, params: dict = None):
         from sqlalchemy.ext.asyncio import create_async_engine
+        from sqlalchemy.exc import SQLAlchemyError, IntegrityError, OperationalError
+
         connection_string = self.get_connection_string()
-        async_engine = create_async_engine(connection_string, pool_pre_ping=True, future=True)
-        async with async_engine.connect() as connection:
-            result = await connection.execute(text(query), params or {})
-            rows = result.mappings().all()
-            results = [{key: _serialize(value) for key, value in row.items()} for row in rows]
-            return results
+        async_engine = create_async_engine(connection_string, pool_pre_ping=True, future=True,connect_args={"ssl": "require"})
+
+        try:
+            async with async_engine.connect() as connection:
+                result = await connection.execute(text(query), params or {})
+
+                if result.returns_rows:
+                    rows = result.mappings().all()
+                    results = [{key: _serialize(value) for key, value in row.items()} for row in rows]
+                    return results
+                
+                await connection.commit()
+                return {"rowcount": result.rowcount}
+
+        except IntegrityError as e:
+            raise ValueError(f"Constraint violation: {e.orig}") from e
+        except OperationalError as e:
+            raise ConnectionError(f"Database connection failed: {e.orig}") from e
+        except SQLAlchemyError as e:
+            raise RuntimeError(f"Database error: {e}") from e
+        finally:
+            await async_engine.dispose()
 

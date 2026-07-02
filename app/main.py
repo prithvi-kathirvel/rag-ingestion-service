@@ -5,6 +5,7 @@ from app.api.v1.api import router
 from app.db.database import Database
 from app.core.config import get_config
 from app.core.logging import setup_logging,logger,logging_middleware
+from app.services.metadata_service import MetaDataExtractor
 
 settings = get_config()
 setup_logging(environment=settings.ENVIRONMENT)
@@ -24,6 +25,11 @@ async def lifespan(app: FastAPI):
         
     )
     app.state.database = database
+
+    app.state.metadata_extractor = MetaDataExtractor.from_pretrained(
+        model_name=settings.GLINER2_MODEL,
+        threshold=settings.GLINER2_MODEL_THRESHOLD,
+    )
     yield
     logger.info("Shutting down application")
 
